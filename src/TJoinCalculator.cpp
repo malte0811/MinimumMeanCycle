@@ -24,7 +24,6 @@ TJoin MMC::TJoinCalculator::get_minimum_zero_join(std::function<double(double)> 
             odd_nodes.push_back(i);
         }
     }
-    //TODO use 0-weight edges to reduce num of odd nodes?
     auto base_result = get_minimum_cost_t_join(odd_nodes, [&cost_transform](double c) {
         return std::abs(cost_transform(c));
     });

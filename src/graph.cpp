@@ -14,10 +14,6 @@ NodeId from_dimacs_id(size_type dimacs_node_id) {
     return NodeId(dimacs_node_id - 1);
 }
 
-size_type to_dimacs_id(size_type node_id) {
-    return node_id + 1;
-}
-
 // Returns the first line which is not a comment, i.e. does not start with c.
 std::string read_next_non_comment_line(std::istream& input) {
     std::string line;
@@ -88,18 +84,6 @@ Graph Graph::read_dimacs(std::istream& input) {
     }
 
     return graph;
-}
-
-std::ostream& operator<<(std::ostream& output, Graph const& graph) {
-    output << "p edge " << graph.num_nodes() << " " << graph.num_edges() << '\n';
-
-    for (EdgeId edge_id{0}; edge_id < graph.num_edges(); ++edge_id) {
-        output << "e " << to_dimacs_id(graph.halfedge(HalfEdgeId{2 * edge_id.get() + 1}).target().get()) << " "
-               << to_dimacs_id(graph.halfedge(HalfEdgeId{2 * edge_id.get() + 0}).target().get()) << " "
-               << graph.edge_weight(edge_id) << '\n';
-    }
-    output << std::flush;
-    return output;
 }
 
 } // namespace MMC

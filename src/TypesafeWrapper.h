@@ -16,8 +16,9 @@ class TypesafeWrapper {
 public:
     using Self = TypesafeWrapper<BaseType, T>;
 
-    template<typename... Args>
-    explicit TypesafeWrapper(Args&& ... args): _inner(std::forward<Args>(args)...) {}
+    explicit TypesafeWrapper(BaseType const& arg) : _inner(arg) {}
+
+    TypesafeWrapper() : _inner() {}
 
     BaseType const& get() const {
         return _inner;

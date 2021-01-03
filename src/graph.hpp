@@ -137,11 +137,6 @@ public:
      */
     static Graph read_dimacs(std::istream& str);
 
-    /**
-      @brief Prints the graph to the given ostream in DIMACS format.
-    **/
-    friend std::ostream& operator<<(std::ostream& str, Graph const& graph);
-
     [[nodiscard]] EdgeId edge_id(HalfEdgeId const& half_edge) const;
 
     [[nodiscard]] std::array<NodeId, 2> edge_ends(EdgeId wrapper) const;
