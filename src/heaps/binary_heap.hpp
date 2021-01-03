@@ -48,6 +48,7 @@ BinaryHeap<T, C>::BinaryHeap(IndexFunc <T> index, size_t max_size)
         :HeapBase<T, C, BinaryHeap>(std::move(index), max_size), _contents(0) {}
 
 template<typename T, typename C>
+__attribute__((noinline))
 T BinaryHeap<T, C>::extract_min() {
     this->index(_contents.front().val) = this->invalid_index();
     T ret = _contents.front().val;

@@ -17,9 +17,10 @@ public:
 
 private:
     struct NodeData {
-        HalfEdgeId half_edge_to_prev;
+        NodeId last;
         double distance;
         size_t heap_index;
+        bool fixed;
     };
 
     Graph const& _graph;

@@ -28,32 +28,27 @@ std::string read_next_non_comment_line(std::istream& input) {
 } // end of anonymous namespace
 
 /////////////////////////////////////////////
-//! \c Node definitions
-/////////////////////////////////////////////
-
-void Node::add_outgoing_halfedge(HalfEdgeId const id) {
-    _outgoing_halfedges.push_back(id);
-}
-
-/////////////////////////////////////////////
 //! \c Graph definitions
 /////////////////////////////////////////////
 
-Graph::Graph(NodeId const num_nodes)
-        : _nodes(num_nodes.get()) {}
+Graph::Graph(NodeId const num_nodes) :
+        _edge_costs(num_nodes * num_nodes),
+        _edge_in_graph(num_nodes * num_nodes),
+        _num_nodes(num_nodes) {}
 
-void Graph::add_edge(NodeId const node1_id, NodeId const node2_id, EdgeWeight const weight) {
-    if (node1_id == node2_id) {
+void Graph::add_edge(Edge const to_add, EdgeWeight const weight) {
+    if (to_add.first == to_add.second) {
         throw std::runtime_error("MMC::Graph class does not support loops!");
     }
-
-    HalfEdgeId const halfedge1_id(_halfedges.size());
-    HalfEdgeId const halfedge2_id(halfedge1_id.get() + 1);
-    _nodes[node1_id.get()].add_outgoing_halfedge(halfedge1_id);
-    _nodes[node2_id.get()].add_outgoing_halfedge(halfedge2_id);
-    _halfedges.emplace_back(node2_id, halfedge2_id);
-    _halfedges.emplace_back(node1_id, halfedge1_id);
-    _edge_weights.emplace_back(weight);
+    for (auto const& e : {to_add, std::make_pair(to_add.second, to_add.first)}) {
+        if (edge_exists(e)) {
+            auto& weight_in_matrix = _edge_costs.at(edge_id(e));
+            weight_in_matrix = std::min(weight_in_matrix, weight);
+        } else {
+            _edge_in_graph.at(edge_id(e)) = true;
+            _edge_costs.at(edge_id(e)) = weight;
+        }
+    }
 }
 
 Graph Graph::read_dimacs(std::istream& input) {
@@ -80,7 +75,7 @@ Graph Graph::read_dimacs(std::istream& input) {
         EdgeWeight weight{};
         ith_buffering_stream << ith_line;
         ith_buffering_stream >> unused_word >> dimacs_node1 >> dimacs_node2 >> weight;
-        graph.add_edge(from_dimacs_id(dimacs_node1), from_dimacs_id(dimacs_node2), weight);
+        graph.add_edge({from_dimacs_id(dimacs_node1), from_dimacs_id(dimacs_node2)}, weight);
     }
 
     return graph;

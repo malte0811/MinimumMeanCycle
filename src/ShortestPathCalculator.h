@@ -8,7 +8,7 @@
 namespace MMC {
 
 struct Path {
-    std::vector<EdgeId> path_edges;
+    std::vector<Edge> path_edges;
     double path_cost;
 };
 

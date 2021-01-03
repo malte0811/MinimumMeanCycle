@@ -7,20 +7,23 @@
 namespace MMC {
 
 TJoin MMC::TJoinCalculator::get_minimum_zero_join(std::function<double(double)> const& cost_transform) const {
-    std::vector<bool> node_is_odd(_base_graph.num_nodes().get(), false);
-    std::vector<EdgeId> negative_edges;
-    for (EdgeId edge_id{0}; edge_id < _base_graph.num_edges(); ++edge_id) {
-        if (_base_graph.edge_cost(edge_id, cost_transform) < 0) {
-            for (auto const end : _base_graph.edge_ends(edge_id)) {
-                node_is_odd[end.get()] = not node_is_odd[end.get()];
+    std::vector<bool> node_is_odd(_base_graph.num_nodes(), false);
+    std::vector<Edge> negative_edges;
+    for (NodeId lower = 0; lower < _base_graph.num_nodes(); ++lower) {
+        for (NodeId upper = lower + 1; upper < _base_graph.num_nodes(); ++upper) {
+            Edge edge{lower, upper};
+            if (_base_graph.edge_cost(edge, cost_transform) < 0) {
+                for (auto const end : {lower, upper}) {
+                    node_is_odd[end] = not node_is_odd[end];
+                }
+                negative_edges.push_back(edge);
             }
-            negative_edges.push_back(edge_id);
         }
     }
     assert(std::is_sorted(negative_edges.begin(), negative_edges.end()));
     std::vector<NodeId> odd_nodes;
-    for (NodeId i{0}; i < _base_graph.num_nodes(); ++i) {
-        if (node_is_odd.at(i.get())) {
+    for (NodeId i = 0; i < _base_graph.num_nodes(); ++i) {
+        if (node_is_odd.at(i)) {
             odd_nodes.push_back(i);
         }
     }
@@ -43,8 +46,11 @@ TJoin TJoinCalculator::get_minimum_cost_t_join(
         std::vector<NodeId> const& odd_nodes, std::function<double(double)> const& cost_transform
 ) const {
 #ifndef NDEBUG
-    for (EdgeId i{0}; i < _base_graph.num_edges(); ++i) {
-        assert(_base_graph.edge_cost(i, cost_transform) >= 0);
+    for (NodeId lower = 0; lower < _base_graph.num_nodes(); ++lower) {
+        for (NodeId higher = lower + 1; higher < _base_graph.num_nodes(); ++higher) {
+            Edge edge{lower, higher};
+            assert(not _base_graph.edge_exists(edge) or _base_graph.edge_cost(edge, cost_transform) >= 0);
+        }
     }
 #endif
     ShortestPathCalculator path_calc(_base_graph, cost_transform);

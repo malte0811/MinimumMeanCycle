@@ -1,8 +1,9 @@
 #include <iostream>
 #include <fstream>
+#include <numeric>
 
 #include "graph.hpp"
-#include "blossomv/PerfectMatching.h"
+#include "ShortestPathCalculator.h"
 #include "MinimumMeanCycleCalculator.h"
 
 int main(int argc, char** argv) {
@@ -29,13 +30,11 @@ int main(int argc, char** argv) {
     if (mmc) {
         output_file << mmc->size() << '\n';
         for (auto const& edge : *mmc) {
-            auto const ends = graph.edge_ends(edge);
-            auto const cost = graph.edge_weight(edge);
             output_file << "e ";
-            for (auto const end : ends) {
-                output_file << (end.get() + 1) << ' ';
+            for (auto const end : {edge.first, edge.second}) {
+                output_file << (end + 1) << ' ';
             }
-            output_file << cost << '\n';
+            output_file << graph.edge_cost(edge) << '\n';
         }
     } else {
         output_file << "0\n";

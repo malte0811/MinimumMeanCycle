@@ -6,7 +6,7 @@
 
 namespace MMC {
 
-using TJoin = std::vector<EdgeId>;
+using TJoin = std::vector<Edge>;
 
 class TJoinCalculator {
 public:
