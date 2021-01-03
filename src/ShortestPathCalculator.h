@@ -15,10 +15,10 @@ struct Path {
 
 class PathMatrix {
 public:
-    PathMatrix(std::vector<std::vector<Path>>&& paths);
+    explicit PathMatrix(std::vector<std::vector<Path>>&& paths);
 
     // Parameters are vector indices in the node set used to create the path matrix
-    Path const& get_path(size_t lower, size_t higher) const;
+    [[nodiscard]] Path const& get_path(size_t lower, size_t higher) const;
 
 private:
     // First index is strictly greater than second index
@@ -32,14 +32,13 @@ public:
 
     std::optional<NodeId> step();
 
-    Path get_path_to(NodeId target) const;
+    [[nodiscard]] Path get_path_to(NodeId target) const;
 
 private:
     struct NodeData {
-        HalfEdgeId previous_half_edge;
+        HalfEdgeId half_edge_to_prev;
         double distance;
         size_t heap_index;
-        bool dist_fixed;
     };
 
     Graph const& _graph;

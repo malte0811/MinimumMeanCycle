@@ -3,16 +3,18 @@
 #include <sstream>
 #include <stdexcept>
 
+namespace MMC {
+
 namespace {
 
-MMC::NodeId from_dimacs_id(MMC::size_type dimacs_node_id) {
+NodeId from_dimacs_id(size_type dimacs_node_id) {
     if (dimacs_node_id <= 0) {
         throw std::runtime_error("Non-positive DIMACS node id can not be converted.");
     }
-    return dimacs_node_id - 1;
+    return NodeId(dimacs_node_id - 1);
 }
 
-MMC::size_type to_dimacs_id(MMC::NodeId node_id) {
+size_type to_dimacs_id(size_type node_id) {
     return node_id + 1;
 }
 
@@ -29,7 +31,6 @@ std::string read_next_non_comment_line(std::istream& input) {
 
 } // end of anonymous namespace
 
-namespace MMC {
 /////////////////////////////////////////////
 //! \c Node definitions
 /////////////////////////////////////////////
@@ -43,17 +44,17 @@ void Node::add_outgoing_halfedge(HalfEdgeId const id) {
 /////////////////////////////////////////////
 
 Graph::Graph(NodeId const num_nodes)
-        : _nodes(num_nodes) {}
+        : _nodes(num_nodes.get()) {}
 
 void Graph::add_edge(NodeId const node1_id, NodeId const node2_id, EdgeWeight const weight) {
     if (node1_id == node2_id) {
         throw std::runtime_error("MMC::Graph class does not support loops!");
     }
 
-    HalfEdgeId const halfedge1_id = _halfedges.size();
-    HalfEdgeId const halfedge2_id = halfedge1_id + 1;
-    _nodes[node1_id].add_outgoing_halfedge(halfedge1_id);
-    _nodes[node2_id].add_outgoing_halfedge(halfedge2_id);
+    HalfEdgeId const halfedge1_id(_halfedges.size());
+    HalfEdgeId const halfedge2_id(halfedge1_id.get() + 1);
+    _nodes[node1_id.get()].add_outgoing_halfedge(halfedge1_id);
+    _nodes[node2_id.get()].add_outgoing_halfedge(halfedge2_id);
     _halfedges.emplace_back(node2_id, halfedge2_id);
     _halfedges.emplace_back(node1_id, halfedge1_id);
     _edge_weights.emplace_back(weight);
@@ -74,7 +75,7 @@ Graph Graph::read_dimacs(std::istream& input) {
     first_buffering_stream >> unused_word >> unused_word >> num_nodes >> num_edges;
 
     // Now we successively add edges to our graph;
-    Graph graph(num_nodes);
+    Graph graph(NodeId{num_nodes});
     for (size_type i = 1; i <= num_edges; ++i) {
         std::stringstream ith_buffering_stream{};
         std::string const ith_line = read_next_non_comment_line(input);
@@ -93,8 +94,8 @@ std::ostream& operator<<(std::ostream& output, Graph const& graph) {
     output << "p edge " << graph.num_nodes() << " " << graph.num_edges() << '\n';
 
     for (EdgeId edge_id{0}; edge_id < graph.num_edges(); ++edge_id) {
-        output << "e " << to_dimacs_id(graph.halfedge(2 * edge_id + 1).target()) << " "
-               << to_dimacs_id(graph.halfedge(2 * edge_id + 0).target()) << " "
+        output << "e " << to_dimacs_id(graph.halfedge(HalfEdgeId{2 * edge_id.get() + 1}).target().get()) << " "
+               << to_dimacs_id(graph.halfedge(HalfEdgeId{2 * edge_id.get() + 0}).target().get()) << " "
                << graph.edge_weight(edge_id) << '\n';
     }
     output << std::flush;

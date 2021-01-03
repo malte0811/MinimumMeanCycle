@@ -9,7 +9,7 @@ namespace MMC::heap {
 
 //TODO rework with unique_ptr
 template<typename T, typename C>
-class FibonacciHeap : public HeapBase<T> {
+class FibonacciHeap : public HeapBase<T, C, FibonacciHeap> {
 public:
     FibonacciHeap(IndexFunc <T> index, size_t max_size);
 
@@ -39,7 +39,7 @@ private:
 
 template<typename T, typename C>
 FibonacciHeap<T, C>::FibonacciHeap(IndexFunc <T> index, size_t max_size) :
-        HeapBase<T>(std::move(index), max_size) {}
+        HeapBase<T, C, FibonacciHeap>(std::move(index), max_size) {}
 
 template<typename T, typename C>
 void FibonacciHeap<T, C>::decrease_key(T const& obj, C newKey) {
@@ -92,7 +92,7 @@ T FibonacciHeap<T, C>::extract_min() {
     if (min == nullptr) {
         throw std::runtime_error("Tried to remove Entry from empty heap!");
     }
-    auto& minCp = *min;
+    auto* minCp = *min;
     *min = nullptr;
     for (size_t i = 0; i < minCp->children.size(); ++i) {
         auto&& child = minCp->children.at(i);

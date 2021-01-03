@@ -7,7 +7,7 @@
 namespace MMC::heap {
 
 template<typename T, typename C>
-class BagHeap : public HeapBase<T> {
+class BagHeap : public HeapBase<T, C, BagHeap> {
 public:
 
     BagHeap(IndexFunc<T> index, size_t max_size);
@@ -21,7 +21,7 @@ public:
     //O(1)
     void decrease_key(T const& obj, C cost);
 
-    bool empty() const;
+    [[nodiscard]] bool empty() const;
 
 private:
     struct Entry {
@@ -34,24 +34,22 @@ private:
 
 template<typename T, typename C>
 BagHeap<T, C>::BagHeap(IndexFunc<T> index, size_t max_size)
-        : HeapBase<T>(std::move(index), max_size) {}
+        : HeapBase<T, C, BagHeap>(std::move(index), max_size) {}
 
 template<typename T, typename C>
 T BagHeap<T, C>::extract_min() {
-    Entry min = _contents[0];
-    size_t min_index = 0;
-    for (size_t i = 1; i < _contents.size(); ++i) {
-        Entry& curr = _contents[i];
-        if (curr.cost < min.cost) {
-            min = curr;
-            min_index = i;
-        }
+    auto const& result_it = std::min_element(_contents.begin(), _contents.end(), [](auto const& a, auto const& b) {
+        return a.cost < b.cost;
+    });
+    auto const result = result_it->val;
+    *result_it = _contents.back();
+    this->index(result) = this->invalid_index();
+    if (result_it + 1 != _contents.end()) {
+        auto const index = std::distance(_contents.begin(), result_it);
+        this->index(_contents[index].val) = index;
     }
-    _contents[min_index] = _contents.back();
     _contents.pop_back();
-    this->index(min.val) = this->invalid_index();
-    this->index(_contents[min_index].val) = min_index;
-    return min.val;
+    return result;
 }
 
 template<typename T, typename C>
@@ -62,7 +60,7 @@ void BagHeap<T, C>::insert(T const& obj, C cost) {
 
 template<typename T, typename C>
 void BagHeap<T, C>::decrease_key(T const& obj, C cost) {
-    size_t index = this->index(obj);
+    size_t const index = this->index(obj);
     _contents[index].cost = cost;
 }
 

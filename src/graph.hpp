@@ -11,16 +11,17 @@
 #include <limits>
 #include <vector>
 #include <functional>
+#include "TypesafeWrapper.h"
 
 namespace MMC {
 
 using size_type = uint32_t;
 
-using NodeId = size_type;
+using NodeId = TypesafeWrapper<size_type, Type::vertex>;
 
 using EdgeWeight = int32_t;
-using EdgeId = size_type;
-using HalfEdgeId = size_type;
+using EdgeId = TypesafeWrapper<size_type, Type::edge>;
+using HalfEdgeId = TypesafeWrapper<size_type, Type::half_edge>;
 
 class Graph;
 
@@ -112,7 +113,7 @@ public:
     [[nodiscard]] HalfEdge const& halfedge(HalfEdgeId id) const;
 
     /** @return The weight of the specified edge. */
-    [[nodiscard]] EdgeWeight edge_weight(HalfEdgeId id) const;
+    [[nodiscard]] EdgeWeight edge_weight(EdgeId id) const;
 
     /** @return The weight of the specfiied half edge (i.e. the weight of its edge). */
     [[nodiscard]] EdgeWeight halfedge_weight(HalfEdgeId id) const;
@@ -127,7 +128,9 @@ public:
 
     [[nodiscard]] std::vector<Node> const& nodes() const;
 
-    [[nodiscard]] double edge_cost(HalfEdgeId edge_id, std::function<double(double)> const& transform) const;
+    [[nodiscard]] double halfedge_cost(HalfEdgeId edge_id, std::function<double(double)> const& transform) const;
+
+    [[nodiscard]] double edge_cost(EdgeId edge_id, std::function<double(double)> const& transform) const;
 
     /**
      * @brief Reads a graph in DIMACS format from the given istream and returns that graph.
@@ -141,6 +144,8 @@ public:
 
     [[nodiscard]] EdgeId edge_id(HalfEdgeId const& half_edge) const;
 
+    [[nodiscard]] std::array<NodeId, 2> edge_ends(EdgeId wrapper) const;
+
 private:
     std::vector<Node> _nodes;
     std::vector<HalfEdge> _halfedges;
@@ -153,7 +158,7 @@ size_type Node::degree() const {
 }
 
 inline
-std::vector<EdgeId> const& Node::outgoing_halfedges() const {
+std::vector<HalfEdgeId> const& Node::outgoing_halfedges() const {
     return _outgoing_halfedges;
 }
 
@@ -173,49 +178,59 @@ HalfEdgeId HalfEdge::inverse() const {
 
 inline
 NodeId Graph::num_nodes() const {
-    return _nodes.size();
+    return static_cast<NodeId>(_nodes.size());
 }
 
 inline
 EdgeId Graph::num_edges() const {
-    return _edge_weights.size();
+    return static_cast<EdgeId>(_edge_weights.size());
 }
 
 inline
 HalfEdgeId Graph::num_halfedges() const {
-    return _halfedges.size();
+    return static_cast<HalfEdgeId>(_halfedges.size());
 }
 
 inline
 Node const& Graph::node(NodeId const id) const {
-    return _nodes[id];
+    return _nodes[id.get()];
 }
 
 inline
 HalfEdge const& Graph::halfedge(HalfEdgeId const id) const {
-    return _halfedges[id];
+    return _halfedges[id.get()];
 }
 
 inline
 EdgeWeight Graph::edge_weight(EdgeId const id) const {
-    return _edge_weights.at(id);
+    return _edge_weights.at(id.get());
 }
 
 inline
 EdgeWeight Graph::halfedge_weight(HalfEdgeId const id) const {
-    return _edge_weights.at(edge_id(id));
+    return edge_weight(edge_id(id));
 }
 
 inline std::vector<Node> const& Graph::nodes() const {
     return _nodes;
 }
 
-inline double Graph::edge_cost(HalfEdgeId edge_id, std::function<double(double)> const& transform) const {
+inline double Graph::halfedge_cost(HalfEdgeId edge_id, std::function<double(double)> const& transform) const {
     return transform(halfedge_weight(edge_id));
 }
 
+inline double Graph::edge_cost(EdgeId edge_id, std::function<double(double)> const& transform) const {
+    return transform(edge_weight(edge_id));
+}
+
 inline EdgeId Graph::edge_id(HalfEdgeId const& half_edge) const {
-    return half_edge / 2;
+    return static_cast<EdgeId>(half_edge.get() / 2);
+}
+
+inline std::array<NodeId, 2> Graph::edge_ends(EdgeId wrapper) const {
+    HalfEdgeId lower_id{wrapper.get() * 2};
+    HalfEdgeId higher_id{wrapper.get() * 2 + 1};
+    return {halfedge(lower_id).target(), halfedge(higher_id).target()};
 }
 
 } // namespace MMC

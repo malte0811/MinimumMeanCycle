@@ -9,7 +9,7 @@
 namespace MMC::heap {
 
 template<typename T, typename C>
-class BinaryHeap : public HeapBase<T> {
+class BinaryHeap : public HeapBase<T, C, BinaryHeap> {
 public:
     BinaryHeap(IndexFunc <T> index, size_t max_size);
 
@@ -45,7 +45,7 @@ private:
 
 template<typename T, typename C>
 BinaryHeap<T, C>::BinaryHeap(IndexFunc <T> index, size_t max_size)
-        :HeapBase<T>(std::move(index), max_size), _contents(0) {}
+        :HeapBase<T, C, BinaryHeap>(std::move(index), max_size), _contents(0) {}
 
 template<typename T, typename C>
 T BinaryHeap<T, C>::extract_min() {

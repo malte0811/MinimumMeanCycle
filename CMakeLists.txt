@@ -11,4 +11,4 @@ add_executable(MinimumMeanCycle src/main.cpp src/graph.cpp src/graph.hpp src/blo
         src/blossomv/block.h src/TJoinCalculator.cpp src/TJoinCalculator.h src/ShortestPathCalculator.cpp
         src/ShortestPathCalculator.h src/heaps/binary_heap.hpp src/heaps/bag_heap.hpp src/heaps/fibo_heap.hpp
         src/heaps/heap.h
-        src/heaps/heap_base.h src/MinimumMeanCycleCalculator.cpp src/MinimumMeanCycleCalculator.h)
+        src/heaps/heap_base.h src/MinimumMeanCycleCalculator.cpp src/MinimumMeanCycleCalculator.h src/TypesafeWrapper.h)

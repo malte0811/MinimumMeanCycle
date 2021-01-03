@@ -10,7 +10,7 @@ using TJoin = std::vector<EdgeId>;
 
 class TJoinCalculator {
 public:
-    TJoinCalculator(Graph const& baseGraph);
+    explicit TJoinCalculator(Graph const& baseGraph);
 
     [[nodiscard]] TJoin get_minimum_zero_join(std::function<double(double)> const& cost_transform) const;
 
