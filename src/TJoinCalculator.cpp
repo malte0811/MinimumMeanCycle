@@ -77,9 +77,11 @@ TJoin TJoinCalculator::get_minimum_cost_t_join(
         }
     }
     std::sort(result.begin(), result.end());
-    for (auto it = result.begin(); it != result.end() and it + 1 != result.end(); ++it) {
+    for (auto it = result.begin(); it != result.end() and it + 1 != result.end();) {
         if (*it == *(it + 1)) {
-            result.erase(it, it + 2);
+            it = result.erase(it, it + 2);
+        } else {
+            ++it;
         }
     }
     return result;
