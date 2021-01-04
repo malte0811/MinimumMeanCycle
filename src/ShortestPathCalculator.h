@@ -9,7 +9,7 @@ namespace MMC {
 
 struct Path {
     std::vector<Edge> path_edges;
-    double path_cost;
+    long path_cost;
 };
 
 class PathMatrix {
@@ -27,7 +27,7 @@ private:
 
 class ShortestPathCalculator {
 public:
-    ShortestPathCalculator(Graph const& graph, std::function<double(double)> const& cost_transform);
+    ShortestPathCalculator(Graph const& graph, std::function<long(long)> const& cost_transform);
 
     PathMatrix some_pairs_shortest_paths(std::vector<NodeId> const& endpoints);
 
@@ -35,7 +35,7 @@ public:
 
 private:
     Graph const& _graph;
-    std::function<double(double)> const& _cost_transform;
+    std::function<long(long)> const& _cost_transform;
 };
 
 }

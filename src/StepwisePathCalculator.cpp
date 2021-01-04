@@ -2,7 +2,7 @@
 
 namespace MMC {
 StepwisePathCalculator::StepwisePathCalculator(
-        Graph const& graph, std::function<double(double)> const& cost_transform, NodeId const source
+        Graph const& graph, std::function<long(long)> const& cost_transform, NodeId const source
 ) :
         _graph(graph),
         _cost_transform(cost_transform),
@@ -12,7 +12,7 @@ StepwisePathCalculator::StepwisePathCalculator(
                 [this](NodeId const& id) -> size_t& { return _node_data.at(id).heap_index; },
                 _graph.num_nodes()
         ) {
-    NodeData empty_node_data{0, std::numeric_limits<double>::max(), _graph.num_nodes(), false};
+    NodeData empty_node_data{0, std::numeric_limits<long>::max(), _graph.num_nodes(), false};
     std::fill(_node_data.begin(), _node_data.end(), empty_node_data);
     _node_data.at(source).distance = 0;
     _heap.insert(source, 0);

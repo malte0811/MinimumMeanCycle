@@ -26,24 +26,24 @@ std::optional<std::vector<Edge>> MinimumMeanCycleCalculator::find_mmc() {
         }
         result_cycle = *start_cycle;
     }
-    double gamma = get_average_cost(result_cycle);
-    double delta_gamma = 0;
+    auto gamma = get_average_cost(result_cycle);
+    auto gamma_last = gamma;
     do {
         TJoinCalculator calc(_graph);
-        std::cout << "Calculating join with gamma=" << gamma << '\n';
-        auto const& min_join = calc.get_minimum_zero_join([gamma](double orig_cost) {
-            return orig_cost - gamma;
+        std::cout << "Calculating join with gamma=" << static_cast<double>(gamma) << '\n';
+        auto const& min_join = calc.get_minimum_zero_join([gamma](long orig_cost) {
+            return orig_cost * gamma.num_edges - gamma.cost_sum;
         });
         if (not min_join.empty()) {
             auto const gamma_next = get_average_cost(min_join);
-            delta_gamma = gamma - gamma_next;
-            assert(delta_gamma >= 0);
+            gamma_last = gamma;
             gamma = gamma_next;
             result_cycle = find_any_circuit(min_join).value();
         } else {
-            delta_gamma = 0;
+            std::cout << "Empty join!\n";
+            gamma = {0, 1};
         }
-    } while (delta_gamma > 1e-3);
+    } while (gamma != gamma_last and gamma.cost_sum != 0);
     return result_cycle;
 }
 
@@ -85,10 +85,13 @@ MinimumMeanCycleCalculator::find_any_circuit(std::vector<Edge> const& edges) con
                 }
                 if (in_stack.count(next)) {
                     std::vector<Edge> circuit{edge};
+                    long cost = _graph.edge_cost(edge);
                     while (stack.back().current_node != next) {
                         circuit.push_back(stack.back().parent_edge);
+                        cost += _graph.edge_cost(stack.back().parent_edge);
                         stack.pop_back();
                     }
+                    std::cout << "Avg cost: " << (cost / static_cast<double>(circuit.size())) << '\n';
                     return circuit;
                 } else {
                     stack.push_back(StackElement{edge, next, 0});
@@ -103,13 +106,20 @@ MinimumMeanCycleCalculator::find_any_circuit(std::vector<Edge> const& edges) con
     return std::nullopt;
 }
 
-double MinimumMeanCycleCalculator::get_average_cost(std::vector<Edge> const& edges) const {
-    double total_cost_current_cf = 0;
+auto MinimumMeanCycleCalculator::get_average_cost(std::vector<Edge> const& edges) const -> Gamma {
+    long total_cost = 0;
     for (auto const& join_edge : edges) {
-        total_cost_current_cf += _graph.edge_cost(join_edge);
+        total_cost += _graph.edge_cost(join_edge);
     }
-    assert(total_cost_current_cf <= 0);
-    return total_cost_current_cf / edges.size();
+    assert(total_cost <= 0);
+    return Gamma{total_cost, edges.size()};
 }
 
+bool MinimumMeanCycleCalculator::Gamma::operator==(MinimumMeanCycleCalculator::Gamma const& other) const {
+    return cost_sum * other.num_edges == other.cost_sum * num_edges;
+}
+
+bool MinimumMeanCycleCalculator::Gamma::operator!=(MinimumMeanCycleCalculator::Gamma const& other) const {
+    return not(*this == other);
+}
 }

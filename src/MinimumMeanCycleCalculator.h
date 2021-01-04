@@ -12,9 +12,22 @@ public:
     std::optional<std::vector<Edge>> find_mmc();
 
 private:
+    struct Gamma {
+        long cost_sum;
+        size_t num_edges;
+
+        bool operator==(Gamma const& other) const;
+
+        bool operator!=(Gamma const& other) const;
+
+        explicit operator double() const {
+            return static_cast<double>(cost_sum) / static_cast<double>(num_edges);
+        }
+    };
+
     [[nodiscard]] std::optional<std::vector<Edge>> find_any_circuit(std::vector<Edge> const& edges) const;
 
-    [[nodiscard]] double get_average_cost(std::vector<Edge> const& edges) const;
+    [[nodiscard]] Gamma get_average_cost(std::vector<Edge> const& edges) const;
 
     Graph const& _graph;
 };

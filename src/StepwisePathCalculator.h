@@ -9,7 +9,7 @@ namespace MMC {
 
 class StepwisePathCalculator {
 public:
-    StepwisePathCalculator(Graph const& graph, std::function<double(double)> const& cost_transform, NodeId source);
+    StepwisePathCalculator(Graph const& graph, std::function<long(long)> const& cost_transform, NodeId source);
 
     std::optional<NodeId> step();
 
@@ -18,16 +18,16 @@ public:
 private:
     struct NodeData {
         NodeId last;
-        double distance;
+        long distance;
         size_t heap_index;
         bool fixed;
     };
 
     Graph const& _graph;
-    std::function<double(double)> const& _cost_transform;
+    std::function<long(long)> const& _cost_transform;
     NodeId _source;
     std::vector<NodeData> _node_data;
-    heap::Heap<NodeId, double> _heap;
+    heap::Heap<NodeId, long> _heap;
 };
 
 }

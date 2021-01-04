@@ -53,7 +53,7 @@ public:
     **/
     void add_edge(Edge to_add, EdgeWeight weight);
 
-    [[nodiscard]] double edge_cost(Edge const& edge_id, std::function<double(double)> const& transform) const;
+    [[nodiscard]] long edge_cost(Edge const& edge_id, std::function<long(long)> const& transform) const;
 
     [[nodiscard]] EdgeWeight edge_cost(Edge const& edge_id) const;
 
@@ -76,8 +76,7 @@ inline NodeId Graph::num_nodes() const {
     return _num_nodes;
 }
 
-__attribute__((noinline))
-inline double Graph::edge_cost(Edge const& edge_id, std::function<double(double)> const& transform) const {
+inline long Graph::edge_cost(Edge const& edge_id, std::function<long(long)> const& transform) const {
     return transform(edge_cost(edge_id));
 }
 

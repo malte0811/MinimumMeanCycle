@@ -55,7 +55,6 @@ size_t HeapBase<Value, Cost, Self>::invalid_index() const {
 }
 
 template<typename Value, typename Cost, template<typename, typename> typename Self>
-__attribute__((noinline))
 void HeapBase<Value, Cost, Self>::decrease_or_insert(Value const& obj, Cost cost) {
     auto* heap = static_cast<Self<Value, Cost>*>(this);
     if (not heap->contains(obj)) {

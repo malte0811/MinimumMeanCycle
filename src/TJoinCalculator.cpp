@@ -6,7 +6,7 @@
 
 namespace MMC {
 
-TJoin MMC::TJoinCalculator::get_minimum_zero_join(std::function<double(double)> const& cost_transform) const {
+TJoin MMC::TJoinCalculator::get_minimum_zero_join(std::function<long(long)> const& cost_transform) const {
     std::vector<bool> node_is_odd(_base_graph.num_nodes(), false);
     std::vector<Edge> negative_edges;
     for (NodeId lower = 0; lower < _base_graph.num_nodes(); ++lower) {
@@ -43,7 +43,7 @@ TJoin MMC::TJoinCalculator::get_minimum_zero_join(std::function<double(double)> 
 }
 
 TJoin TJoinCalculator::get_minimum_cost_t_join(
-        std::vector<NodeId> const& odd_nodes, std::function<double(double)> const& cost_transform
+        std::vector<NodeId> const& odd_nodes, std::function<long(long)> const& cost_transform
 ) const {
 #ifndef NDEBUG
     for (NodeId lower = 0; lower < _base_graph.num_nodes(); ++lower) {
@@ -61,7 +61,7 @@ TJoin TJoinCalculator::get_minimum_cost_t_join(
             static_cast<int>(odd_nodes.size()),
             static_cast<int>((odd_nodes.size() * (odd_nodes.size() - 1)) / 2)
     };
-    solver.options.verbose = false;
+    //solver.options.verbose = false;
     for (size_t lower = 0; lower < odd_nodes.size(); ++lower) {
         for (size_t higher = lower + 1; higher < odd_nodes.size(); ++higher) {
             solver.AddEdge(lower, higher, paths.get_path(lower, higher).path_cost);

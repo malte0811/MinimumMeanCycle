@@ -5,7 +5,7 @@
 namespace MMC {
 
 ShortestPathCalculator::ShortestPathCalculator(
-        MMC::Graph const& graph, std::function<double(double)> const& cost_transform
+        MMC::Graph const& graph, std::function<long(long)> const& cost_transform
 ) : _graph(graph),
     _cost_transform(cost_transform) {}
 
