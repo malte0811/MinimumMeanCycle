@@ -12,7 +12,6 @@
 #include <vector>
 #include <functional>
 #include <cassert>
-#include "TypesafeWrapper.h"
 
 namespace MMC {
 

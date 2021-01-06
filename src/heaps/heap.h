@@ -3,7 +3,7 @@
 
 #include "bag_heap.hpp"
 #include "fibo_heap.hpp"
-#include "binary_heap.hpp"
+#include "binary_heap.h"
 
 namespace MMC::heap {
 

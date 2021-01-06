@@ -1,4 +1,4 @@
-#include "graph.hpp" // always include corresponding header first
+#include "graph.h" // always include corresponding header first
 #include <iostream>
 #include <sstream>
 #include <stdexcept>

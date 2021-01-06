@@ -3,7 +3,8 @@
 
 #include <vector>
 #include <optional>
-#include "graph.hpp"
+#include "graph.h"
+#include "heaps/heap.h"
 
 namespace MMC {
 
@@ -12,31 +13,43 @@ struct Path {
     long path_cost;
 };
 
-class PathMatrix {
-public:
-    explicit PathMatrix(std::vector<std::vector<Path>>&& paths);
-
-    // Parameters are vector indices in the node set used to create the path matrix
-    [[nodiscard]] Path const& get_path(size_t lower, size_t higher) const;
-
-private:
-    // First index is strictly greater than second index
-    // TODO index shift
-    std::vector<std::vector<Path>> _paths;
-};
-
 class ShortestPathCalculator {
 public:
-    ShortestPathCalculator(Graph const& graph, std::function<long(long)> const& cost_transform);
+    ShortestPathCalculator(NodeId source, Graph const& graph, std::function<long(long)> const& cost_transform);
 
-    PathMatrix some_pairs_shortest_paths(std::vector<NodeId> const& endpoints);
+    template<class Iterator>
+    void run_until_found(Iterator const& targets_begin, Iterator const& targets_end);
 
-    std::vector<Path> paths_from_root(NodeId const& source, std::vector<NodeId> const& targets);
+    [[nodiscard]] std::optional<Path> make_path(NodeId target) const;
 
 private:
+    struct NodeData {
+        NodeId last;
+        long distance;
+        size_t heap_index;
+        bool fixed;
+    };
+
+    NodeId fix_next_node();
+
     Graph const& _graph;
     std::function<long(long)> const& _cost_transform;
+    NodeId const _source;
+    std::vector<NodeData> _node_data;
+    heap::Heap<NodeId, long> _heap;
 };
+
+template<class Iterator>
+inline void ShortestPathCalculator::run_until_found(Iterator const& targets_begin, Iterator const& targets_end) {
+    auto const num_targets = static_cast<size_t>(std::distance(targets_begin, targets_end));
+    size_t num_targets_found = 0;
+    while (num_targets_found < num_targets and not _heap.empty()) {
+        auto const& fixed_node = fix_next_node();
+        if (std::find(targets_begin, targets_end, fixed_node) != targets_end) {
+            ++num_targets_found;
+        }
+    }
+}
 
 }
 

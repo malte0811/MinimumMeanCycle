@@ -1,7 +1,7 @@
 #ifndef MINIMUMMEANCYCLE_MINIMUMMEANCYCLECALCULATOR_H
 #define MINIMUMMEANCYCLE_MINIMUMMEANCYCLECALCULATOR_H
 
-#include "graph.hpp"
+#include "graph.h"
 
 namespace MMC {
 

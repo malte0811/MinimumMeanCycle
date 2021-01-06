@@ -2,7 +2,7 @@
 #include <fstream>
 #include <numeric>
 
-#include "graph.hpp"
+#include "graph.h"
 #include "ShortestPathCalculator.h"
 #include "MinimumMeanCycleCalculator.h"
 

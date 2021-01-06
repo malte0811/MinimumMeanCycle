@@ -1,58 +1,64 @@
-#include <cassert>
 #include "ShortestPathCalculator.h"
-#include "StepwisePathCalculator.h"
+#include <cassert>
 
 namespace MMC {
 
 ShortestPathCalculator::ShortestPathCalculator(
-        MMC::Graph const& graph, std::function<long(long)> const& cost_transform
+        NodeId const source, MMC::Graph const& graph, std::function<long(long)> const& cost_transform
 ) : _graph(graph),
-    _cost_transform(cost_transform) {}
-
-PathMatrix ShortestPathCalculator::some_pairs_shortest_paths(std::vector<NodeId> const& endpoints) {
-    if (endpoints.empty()) {
-        return PathMatrix(std::vector<std::vector<Path>>{});
-    }
-    //TODO disconnected graphs?
-    //TODO this is a very naive implementation and needs to be optimized
-    std::vector<NodeId> targets = endpoints;
-    targets.pop_back();
-    std::vector<std::vector<Path>> paths;
-    for (size_t source_index = endpoints.size() - 1; source_index > 0; --source_index) {
-        paths.push_back(paths_from_root(endpoints.at(source_index), targets));
-        targets.pop_back();
-    }
-    //TODO handle manually? On the other hand it's not at all perf critical
-    paths.emplace_back();
-    std::reverse(paths.begin(), paths.end());
-    assert(targets.empty());
-    return PathMatrix(std::move(paths));
+    _cost_transform(cost_transform),
+    _source(source),
+    _node_data(_graph.num_nodes()),
+    _heap(
+            [this](NodeId const& id) -> size_t& { return _node_data.at(id).heap_index; },
+            _graph.num_nodes()
+    ) {
+    NodeData empty_node_data{0, std::numeric_limits<long>::max(), _graph.num_nodes(), false};
+    std::fill(_node_data.begin(), _node_data.end(), empty_node_data);
+    _node_data.at(source).distance = 0;
+    _heap.insert(source, 0);
 }
 
-std::vector<Path> ShortestPathCalculator::paths_from_root(NodeId const& source, std::vector<NodeId> const& targets) {
-    size_t num_targets_found = 0;
-    StepwisePathCalculator stepwise_calc(_graph, _cost_transform, source);
-    while (num_targets_found < targets.size()) {
-        auto const& fixed_node = stepwise_calc.step();
-        assert(fixed_node.has_value());
-        if (std::find(targets.begin(), targets.end(), fixed_node.value()) != targets.end()) {
-            ++num_targets_found;
+NodeId ShortestPathCalculator::fix_next_node() {
+    assert(not _heap.empty());
+    auto const next_id_to_fix = _heap.extract_min();
+    _node_data.at(next_id_to_fix).fixed = true;
+    auto const distance_to_fixed = _node_data.at(next_id_to_fix).distance;
+    for (NodeId other_end = 0; other_end < _graph.num_nodes(); ++other_end) {
+        auto& end_data = _node_data.at(other_end);
+        if (end_data.fixed) {
+            continue;
+        }
+        // Order of the vertices is irrelevant for correctness, but highly important for performance due to CPU caches
+        Edge const edge{next_id_to_fix, other_end,};
+        if (not _graph.edge_exists(edge)) {
+            continue;
+        }
+        auto const edge_weight = _graph.edge_cost(edge, _cost_transform);
+        auto const distance_via_node = distance_to_fixed + edge_weight;
+        if (end_data.distance > distance_via_node) {
+            end_data.distance = distance_via_node;
+            end_data.last = next_id_to_fix;
+            _heap.decrease_or_insert(other_end, distance_via_node);
         }
     }
+    return next_id_to_fix;
+}
 
-    std::vector<Path> paths;
-    paths.reserve(targets.size());
-    for (auto const& target : targets) {
-        paths.push_back(stepwise_calc.get_path_to(target));
+std::optional<Path> ShortestPathCalculator::make_path(NodeId const target) const {
+    if (not _node_data.at(target).fixed) {
+        return std::nullopt;
     }
-    return paths;
+    std::vector<Edge> edges_reversed;
+    auto current_node = target;
+    while (current_node != _source) {
+        auto const& current_data = _node_data.at(current_node);
+        auto const&[lower, higher] = std::minmax(current_data.last, current_node);
+        edges_reversed.emplace_back(lower, higher);
+        current_node = current_data.last;
+    }
+    std::reverse(edges_reversed.begin(), edges_reversed.end());
+    return Path{std::move(edges_reversed), _node_data.at(target).distance};
 }
-
-Path const& PathMatrix::get_path(size_t lower, size_t higher) const {
-    assert(lower < higher);
-    return _paths.at(higher).at(lower);
-}
-
-PathMatrix::PathMatrix(std::vector<std::vector<Path>>&& paths) : _paths(std::move(paths)) {}
 
 }

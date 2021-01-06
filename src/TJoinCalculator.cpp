@@ -1,5 +1,6 @@
 #include <cassert>
 #include <iostream>
+#include <map>
 #include "TJoinCalculator.h"
 #include "ShortestPathCalculator.h"
 #include "blossomv/PerfectMatching.h"
@@ -27,12 +28,10 @@ TJoin MMC::TJoinCalculator::get_minimum_zero_join(std::function<long(long)> cons
             odd_nodes.push_back(i);
         }
     }
-    auto base_result = get_minimum_cost_t_join(odd_nodes, [&cost_transform](double c) {
+    auto base_result = get_minimum_cost_t_join_nonnegative_costs(odd_nodes, [&cost_transform](double c) {
         return std::abs(cost_transform(c));
     });
-    //TODO less stupid?
     std::sort(base_result.begin(), base_result.end());
-    //TODO size estimate?
     TJoin result_join;
     std::set_symmetric_difference(
             negative_edges.begin(), negative_edges.end(),
@@ -42,7 +41,7 @@ TJoin MMC::TJoinCalculator::get_minimum_zero_join(std::function<long(long)> cons
     return result_join;
 }
 
-TJoin TJoinCalculator::get_minimum_cost_t_join(
+TJoin TJoinCalculator::get_minimum_cost_t_join_nonnegative_costs(
         std::vector<NodeId> const& odd_nodes, std::function<long(long)> const& cost_transform
 ) const {
 #ifndef NDEBUG
@@ -53,31 +52,36 @@ TJoin TJoinCalculator::get_minimum_cost_t_join(
         }
     }
 #endif
-    ShortestPathCalculator path_calc(_base_graph, cost_transform);
-    std::cout << "Starting shortest path calc, num odd: " << odd_nodes.size() << '\n';
-    auto const paths = path_calc.some_pairs_shortest_paths(odd_nodes);
-    std::cout << "Path calc done\n";
-    PerfectMatching solver{
-            static_cast<int>(odd_nodes.size()),
-            static_cast<int>((odd_nodes.size() * (odd_nodes.size() - 1)) / 2)
-    };
-    //solver.options.verbose = false;
+    std::map<std::pair<size_t, size_t>, Path> paths;
+    for (size_t lower = 0; lower < odd_nodes.size(); ++lower) {
+        ShortestPathCalculator calc(odd_nodes.at(lower), _base_graph, cost_transform);
+        calc.run_until_found(odd_nodes.begin() + lower + 1, odd_nodes.end());
+        for (size_t higher = lower + 1; higher < odd_nodes.size(); ++higher) {
+            if (auto const path = calc.make_path(odd_nodes.at(higher))) {
+                paths.insert({std::make_pair(lower, higher), *path});
+            }
+        }
+    }
+
+    PerfectMatching solver{static_cast<int>(odd_nodes.size()), static_cast<int>(paths.size())};
     for (size_t lower = 0; lower < odd_nodes.size(); ++lower) {
         for (size_t higher = lower + 1; higher < odd_nodes.size(); ++higher) {
-            solver.AddEdge(lower, higher, paths.get_path(lower, higher).path_cost);
+            solver.AddEdge(lower, higher, paths.at(std::make_pair(lower, higher)).path_cost);
         }
     }
     solver.Solve();
     TJoin result;
     for (size_t odd_node_index = 0; odd_node_index < odd_nodes.size(); ++odd_node_index) {
-        size_t const matches_to_index = solver.GetMatch(odd_node_index);
-        if (matches_to_index < odd_node_index) {
-            auto const& path = paths.get_path(matches_to_index, odd_node_index);
-            std::copy(path.path_edges.begin(), path.path_edges.end(), std::back_inserter(result));
+        size_t const matched_to_index = solver.GetMatch(odd_node_index);
+        if (matched_to_index < odd_node_index) {
+            auto const& path = paths.at(std::make_pair(matched_to_index, odd_node_index)).path_edges;
+            std::copy(path.begin(), path.end(), std::back_inserter(result));
         }
     }
+    // Remove pairs of duplicate edges
     std::sort(result.begin(), result.end());
-    for (auto it = result.begin(); it != result.end() and it + 1 != result.end();) {
+    auto it = result.begin();
+    while (it != result.end() and it + 1 != result.end()) {
         if (*it == *(it + 1)) {
             it = result.erase(it, it + 2);
         } else {
