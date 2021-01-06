@@ -14,19 +14,26 @@ MinimumMeanCycleCalculator::MinimumMeanCycleCalculator(Graph const& graph) : _gr
 std::optional<std::vector<Edge>> MinimumMeanCycleCalculator::find_mmc() {
     std::vector<Edge> result_cycle;
     {
+        // The only condition the proof places on the initial gamma is that it is an upper bound for the mean cost of an
+        // MMC. So the mean weight of an arbitrary cycle (in this case chosen with heuristically high mean weight) is a
+        // valid choice.
         std::vector<Edge> all_edges;
         for (size_t lower = 0; lower < _graph.num_nodes(); ++lower) {
             for (size_t higher = lower + 1; higher < _graph.num_nodes(); ++higher) {
-                all_edges.emplace_back(lower, higher);
+                Edge const edge{lower, higher};
+                if (_graph.edge_exists(edge)) {
+                    all_edges.push_back(edge);
+                }
             }
         }
-        auto const start_cycle = find_any_circuit(all_edges);
+        auto const start_cycle = find_heuristically_good_circuit(all_edges);
         if (not start_cycle) {
             return std::nullopt;
         }
         result_cycle = *start_cycle;
     }
     auto gamma = get_average_cost(result_cycle);
+
     auto gamma_last = gamma;
     do {
         TJoinCalculator calc(_graph);
@@ -38,68 +45,69 @@ std::optional<std::vector<Edge>> MinimumMeanCycleCalculator::find_mmc() {
             auto const gamma_next = get_average_cost(min_join);
             gamma_last = gamma;
             gamma = gamma_next;
-            result_cycle = find_any_circuit(min_join).value();
+            result_cycle = find_heuristically_good_circuit(min_join).value();
         } else {
-            std::cout << "Empty join!\n";
             gamma = {0, 1};
         }
     } while (gamma != gamma_last and gamma.cost_sum != 0);
     return result_cycle;
 }
 
+/// Find a circuit, using a crude heuristic for low mean cost: a DFS visiting cheap edges first
 std::optional<std::vector<Edge>>
-MinimumMeanCycleCalculator::find_any_circuit(std::vector<Edge> const& edges) const {
-    // Find a circuit, heuristically optimize for low mean cost by using a DFS with cheap edges first
+MinimumMeanCycleCalculator::find_heuristically_good_circuit(std::vector<Edge> const& edges) const {
     std::set<NodeId> unvisited_nodes;
-    std::map<NodeId, std::vector<std::pair<Edge, NodeId>>> edge_map;
+    // Build a quick&dirty graph, with edges sorted by weight
+    std::map<NodeId, std::vector<NodeId>> edge_map;
     for (auto const& edge_id : edges) {
         std::array<NodeId, 2> ends{edge_id.first, edge_id.second};
         for (size_t i = 0; i < ends.size(); ++i) {
             unvisited_nodes.insert(ends[i]);
-            edge_map[ends[i]].emplace_back(edge_id, ends[1 - i]);
+            edge_map[ends[i]].push_back(ends[1 - i]);
         }
     }
-    for (auto&[_, edges] : edge_map) {
-        std::sort(edges.begin(), edges.end(), [this](auto const& pair_a, auto const& pair_b) {
-            return _graph.edge_cost(pair_a.first) < _graph.edge_cost(pair_b.first);
+    for (auto&[from, edges] : edge_map) {
+        std::sort(edges.begin(), edges.end(), [this, from = from](auto const& end_a, auto const& end_b) {
+            return _graph.edge_cost(Edge{from, end_a}) < _graph.edge_cost(Edge{from, end_b});
         });
     }
     struct StackElement {
-        Edge parent_edge;
         NodeId current_node;
         size_t next_edge;
     };
     while (not unvisited_nodes.empty()) {
         auto const root = *unvisited_nodes.begin();
         unvisited_nodes.erase(unvisited_nodes.begin());
-        std::vector<StackElement> stack{StackElement{Edge{0, 0}, root, 0}};
+        std::vector<StackElement> stack{StackElement{root, 0}};
         std::set<NodeId> in_stack{root};
         while (not stack.empty()) {
             auto& stack_top = stack.back();
             auto const& edges_at_current = edge_map.at(stack_top.current_node);
-            if (stack_top.next_edge < edges_at_current.size()) {
-                auto const&[edge, next] = edges_at_current.at(stack_top.next_edge);
-                ++stack_top.next_edge;
-                if (edge == stack_top.parent_edge) {
-                    continue;
-                }
-                if (in_stack.count(next)) {
-                    std::vector<Edge> circuit{edge};
-                    long cost = _graph.edge_cost(edge);
-                    while (stack.back().current_node != next) {
-                        circuit.push_back(stack.back().parent_edge);
-                        cost += _graph.edge_cost(stack.back().parent_edge);
-                        stack.pop_back();
-                    }
-                    std::cout << "Avg cost: " << (cost / static_cast<double>(circuit.size())) << '\n';
-                    return circuit;
-                } else {
-                    stack.push_back(StackElement{edge, next, 0});
-                    in_stack.insert(next);
-                }
-            } else {
+            if (stack_top.next_edge >= edges_at_current.size()) {
+                // Finished at current node
                 in_stack.erase(stack_top.current_node);
                 stack.pop_back();
+                continue;
+            }
+            auto const& next = edges_at_current.at(stack_top.next_edge);
+            ++stack_top.next_edge;
+            // Do not go back to the previous node
+            if (stack.size() > 1 and stack.at(stack.size() - 2).current_node == next) {
+                continue;
+            }
+            if (in_stack.count(next)) {
+                // Found a cycle => return it
+                // We use a DFS, so any non-tree-edge is "inside" a path to the root of the tree
+                std::vector<Edge> circuit{Edge{stack_top.current_node, next}};
+                while (stack.back().current_node != next) {
+                    circuit.emplace_back(stack.back().current_node, stack.at(stack.size() - 2).current_node);
+                    stack.pop_back();
+                }
+                return circuit;
+            } else {
+                stack.push_back(StackElement{next, 0});
+                unvisited_nodes.erase(next);
+                in_stack.insert(next);
             }
         }
     }
@@ -111,7 +119,6 @@ auto MinimumMeanCycleCalculator::get_average_cost(std::vector<Edge> const& edges
     for (auto const& join_edge : edges) {
         total_cost += _graph.edge_cost(join_edge);
     }
-    assert(total_cost <= 0);
     return Gamma{total_cost, edges.size()};
 }
 

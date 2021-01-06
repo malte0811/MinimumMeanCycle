@@ -7,12 +7,14 @@
 
 namespace MMC {
 
+TJoinCalculator::TJoinCalculator(Graph const& baseGraph) : _base_graph(baseGraph) {}
+
 TJoin MMC::TJoinCalculator::get_minimum_zero_join(std::function<long(long)> const& cost_transform) const {
     std::vector<bool> node_is_odd(_base_graph.num_nodes(), false);
     std::vector<Edge> negative_edges;
     for (NodeId lower = 0; lower < _base_graph.num_nodes(); ++lower) {
         for (NodeId upper = lower + 1; upper < _base_graph.num_nodes(); ++upper) {
-            Edge edge{lower, upper};
+            Edge const edge{lower, upper};
             if (_base_graph.edge_cost(edge, cost_transform) < 0) {
                 for (auto const end : {lower, upper}) {
                     node_is_odd[end] = not node_is_odd[end];
@@ -90,7 +92,5 @@ TJoin TJoinCalculator::get_minimum_cost_t_join_nonnegative_costs(
     }
     return result;
 }
-
-TJoinCalculator::TJoinCalculator(Graph const& baseGraph) : _base_graph(baseGraph) {}
 
 }

@@ -25,7 +25,8 @@ private:
         }
     };
 
-    [[nodiscard]] std::optional<std::vector<Edge>> find_any_circuit(std::vector<Edge> const& edges) const;
+    [[nodiscard]] std::optional<std::vector<Edge>>
+    find_heuristically_good_circuit(std::vector<Edge> const& edges) const;
 
     [[nodiscard]] Gamma get_average_cost(std::vector<Edge> const& edges) const;
 

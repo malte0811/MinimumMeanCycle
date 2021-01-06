@@ -4,7 +4,7 @@
 #include <vector>
 #include <optional>
 #include "graph.h"
-#include "heaps/heap.h"
+#include "binary_heap.h"
 
 namespace MMC {
 
@@ -36,7 +36,7 @@ private:
     std::function<long(long)> const& _cost_transform;
     NodeId const _source;
     std::vector<NodeData> _node_data;
-    heap::Heap<NodeId, long> _heap;
+    BinaryHeap<NodeId, long> _heap;
 };
 
 template<class Iterator>
