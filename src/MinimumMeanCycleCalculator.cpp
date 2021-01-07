@@ -38,9 +38,7 @@ std::optional<std::vector<Edge>> MinimumMeanCycleCalculator::find_mmc() {
     do {
         TJoinCalculator calc(_graph);
         std::cout << "Calculating join with gamma=" << static_cast<double>(gamma) << '\n';
-        auto const& min_join = calc.get_minimum_zero_join([gamma](long orig_cost) {
-            return orig_cost * gamma.num_edges - gamma.cost_sum;
-        });
+        auto const& min_join = calc.get_minimum_zero_join(gamma);
         if (not min_join.empty()) {
             auto const gamma_next = get_average_cost(min_join);
             gamma_last = gamma;
@@ -122,11 +120,4 @@ auto MinimumMeanCycleCalculator::get_average_cost(std::vector<Edge> const& edges
     return Gamma{total_cost, edges.size()};
 }
 
-bool MinimumMeanCycleCalculator::Gamma::operator==(MinimumMeanCycleCalculator::Gamma const& other) const {
-    return cost_sum * other.num_edges == other.cost_sum * num_edges;
-}
-
-bool MinimumMeanCycleCalculator::Gamma::operator!=(MinimumMeanCycleCalculator::Gamma const& other) const {
-    return not(*this == other);
-}
 }

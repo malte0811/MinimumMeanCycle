@@ -9,13 +9,13 @@ namespace MMC {
 
 TJoinCalculator::TJoinCalculator(Graph const& baseGraph) : _base_graph(baseGraph) {}
 
-TJoin MMC::TJoinCalculator::get_minimum_zero_join(std::function<long(long)> const& cost_transform) const {
+TJoin MMC::TJoinCalculator::get_minimum_zero_join(Gamma const cost_transform) const {
     std::vector<bool> node_is_odd(_base_graph.num_nodes(), false);
     std::vector<Edge> negative_edges;
     for (NodeId lower = 0; lower < _base_graph.num_nodes(); ++lower) {
         for (NodeId upper = lower + 1; upper < _base_graph.num_nodes(); ++upper) {
             Edge const edge{lower, upper};
-            if (_base_graph.edge_cost(edge, cost_transform) < 0) {
+            if (cost_transform.apply(_base_graph.edge_cost(edge)) < 0) {
                 for (auto const end : {lower, upper}) {
                     node_is_odd[end] = not node_is_odd[end];
                 }
@@ -30,9 +30,7 @@ TJoin MMC::TJoinCalculator::get_minimum_zero_join(std::function<long(long)> cons
             odd_nodes.push_back(i);
         }
     }
-    auto base_result = get_minimum_cost_t_join_nonnegative_costs(odd_nodes, [&cost_transform](double c) {
-        return std::abs(cost_transform(c));
-    });
+    auto base_result = get_minimum_cost_t_join_abs(odd_nodes, cost_transform);
     std::sort(base_result.begin(), base_result.end());
     TJoin result_join;
     std::set_symmetric_difference(
@@ -43,17 +41,9 @@ TJoin MMC::TJoinCalculator::get_minimum_zero_join(std::function<long(long)> cons
     return result_join;
 }
 
-TJoin TJoinCalculator::get_minimum_cost_t_join_nonnegative_costs(
-        std::vector<NodeId> const& odd_nodes, std::function<long(long)> const& cost_transform
+TJoin TJoinCalculator::get_minimum_cost_t_join_abs(
+        std::vector<NodeId> const& odd_nodes, Gamma const cost_transform
 ) const {
-#ifndef NDEBUG
-    for (NodeId lower = 0; lower < _base_graph.num_nodes(); ++lower) {
-        for (NodeId higher = lower + 1; higher < _base_graph.num_nodes(); ++higher) {
-            Edge edge{lower, higher};
-            assert(not _base_graph.edge_exists(edge) or _base_graph.edge_cost(edge, cost_transform) >= 0);
-        }
-    }
-#endif
     std::map<std::pair<size_t, size_t>, Path> paths;
     for (size_t lower = 0; lower < odd_nodes.size(); ++lower) {
         ShortestPathCalculator calc(odd_nodes.at(lower), _base_graph, cost_transform);

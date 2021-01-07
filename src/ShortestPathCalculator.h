@@ -5,6 +5,7 @@
 #include <optional>
 #include <queue>
 #include "graph.h"
+#include "MinimumMeanCycleCalculator.h"
 
 namespace MMC {
 
@@ -15,7 +16,7 @@ struct Path {
 
 class ShortestPathCalculator {
 public:
-    ShortestPathCalculator(NodeId source, Graph const& graph, std::function<long(long)> const& cost_transform);
+    ShortestPathCalculator(NodeId source, Graph const& graph, Gamma cost_transform);
 
     template<class Iterator>
     void run_until_found(Iterator const& targets_begin, Iterator const& targets_end);
@@ -41,7 +42,7 @@ private:
     std::optional<NodeId> fix_next_node();
 
     Graph const& _graph;
-    std::function<long(long)> const& _cost_transform;
+    Gamma const _cost_transform;
     NodeId const _source;
     std::vector<NodeData> _node_data;
     std::priority_queue<HeapEntry, std::vector<HeapEntry>, std::greater<>> _heap;

@@ -4,7 +4,7 @@
 namespace MMC {
 
 ShortestPathCalculator::ShortestPathCalculator(
-        NodeId const source, MMC::Graph const& graph, std::function<long(long)> const& cost_transform
+        NodeId const source, MMC::Graph const& graph, Gamma cost_transform
 ) : _graph(graph),
     _cost_transform(cost_transform),
     _source(source),
@@ -42,7 +42,7 @@ std::optional<NodeId> ShortestPathCalculator::fix_next_node() {
         if (not _graph.edge_exists(edge)) {
             continue;
         }
-        auto const edge_weight = _graph.edge_cost(edge, _cost_transform);
+        auto const edge_weight = std::abs(_cost_transform.apply(_graph.edge_cost(edge)));
         auto const distance_via_node = distance_to_fixed + edge_weight;
         if (end_data.distance > distance_via_node) {
             end_data.distance = distance_via_node;
