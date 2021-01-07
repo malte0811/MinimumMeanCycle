@@ -3,8 +3,8 @@
 
 #include <vector>
 #include <optional>
+#include <queue>
 #include "graph.h"
-#include "binary_heap.h"
 
 namespace MMC {
 
@@ -26,27 +26,37 @@ private:
     struct NodeData {
         NodeId last;
         long distance;
-        size_t heap_index;
         bool fixed;
     };
 
-    NodeId fix_next_node();
+    struct HeapEntry {
+        NodeId node;
+        long distance;
+
+        bool operator>(HeapEntry const& other) const {
+            return distance > other.distance;
+        }
+    };
+
+    std::optional<NodeId> fix_next_node();
 
     Graph const& _graph;
     std::function<long(long)> const& _cost_transform;
     NodeId const _source;
     std::vector<NodeData> _node_data;
-    BinaryHeap<NodeId, long> _heap;
+    std::priority_queue<HeapEntry, std::vector<HeapEntry>, std::greater<>> _heap;
 };
 
 template<class Iterator>
 inline void ShortestPathCalculator::run_until_found(Iterator const& targets_begin, Iterator const& targets_end) {
     auto const num_targets = static_cast<size_t>(std::distance(targets_begin, targets_end));
     size_t num_targets_found = 0;
-    while (num_targets_found < num_targets and not _heap.empty()) {
-        auto const& fixed_node = fix_next_node();
-        if (std::find(targets_begin, targets_end, fixed_node) != targets_end) {
+    while (auto const& fixed_node = fix_next_node()) {
+        if (std::find(targets_begin, targets_end, *fixed_node) != targets_end) {
             ++num_targets_found;
+            if (num_targets_found == num_targets) {
+                break;
+            }
         }
     }
 }

@@ -8,20 +8,28 @@ ShortestPathCalculator::ShortestPathCalculator(
 ) : _graph(graph),
     _cost_transform(cost_transform),
     _source(source),
-    _node_data(_graph.num_nodes()),
-    _heap(
-            [this](NodeId const& id) -> size_t& { return _node_data.at(id).heap_index; },
-            _graph.num_nodes()
-    ) {
-    NodeData empty_node_data{0, std::numeric_limits<long>::max(), _graph.num_nodes(), false};
+    _node_data(_graph.num_nodes()) {
+    NodeData empty_node_data{0, std::numeric_limits<long>::max(), false};
     std::fill(_node_data.begin(), _node_data.end(), empty_node_data);
     _node_data.at(source).distance = 0;
-    _heap.insert(source, 0);
+    _heap.push(HeapEntry{source, 0});
 }
 
-NodeId ShortestPathCalculator::fix_next_node() {
-    assert(not _heap.empty());
-    auto const next_id_to_fix = _heap.extract_min();
+std::optional<NodeId> ShortestPathCalculator::fix_next_node() {
+    auto const next_id_to_fix_opt = [this]() -> std::optional<NodeId> {
+        do {
+            auto const to_fix = _heap.top().node;
+            _heap.pop();
+            if (not _node_data.at(to_fix).fixed) {
+                return to_fix;
+            }
+        } while (not _heap.empty());
+        return std::nullopt;
+    }();
+    if (not next_id_to_fix_opt) {
+        return std::nullopt;
+    }
+    auto const next_id_to_fix = next_id_to_fix_opt.value();
     _node_data.at(next_id_to_fix).fixed = true;
     auto const distance_to_fixed = _node_data.at(next_id_to_fix).distance;
     for (NodeId other_end = 0; other_end < _graph.num_nodes(); ++other_end) {
@@ -39,7 +47,7 @@ NodeId ShortestPathCalculator::fix_next_node() {
         if (end_data.distance > distance_via_node) {
             end_data.distance = distance_via_node;
             end_data.last = next_id_to_fix;
-            _heap.decrease_or_insert(other_end, distance_via_node);
+            _heap.push(HeapEntry{other_end, distance_via_node});
         }
     }
     return next_id_to_fix;
