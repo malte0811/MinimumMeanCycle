@@ -44,10 +44,15 @@ std::optional<std::vector<Edge>> MinimumMeanCycleCalculator::find_mmc() {
             gamma_last = gamma;
             gamma = gamma_next;
             result_cycle = find_heuristically_good_circuit(min_join).value();
+            auto const cycle_gamma = get_average_cost(result_cycle);
+            if (cycle_gamma < gamma) {
+                std::cout << "Using cost of cycle instead of join for larger step size\n";
+                gamma = cycle_gamma;
+            }
         } else {
-            gamma = {0, 1};
+            break;
         }
-    } while (gamma != gamma_last and gamma.cost_sum != 0);
+    } while (gamma != gamma_last);
     return result_cycle;
 }
 
@@ -55,7 +60,7 @@ std::optional<std::vector<Edge>> MinimumMeanCycleCalculator::find_mmc() {
 std::optional<std::vector<Edge>>
 MinimumMeanCycleCalculator::find_heuristically_good_circuit(std::vector<Edge> const& edges) const {
     std::set<NodeId> unvisited_nodes;
-    // Build a quick&dirty graph, with edges sorted by weight
+    // Build a quick&dirty graph representation, with edges sorted by weight
     std::map<NodeId, std::vector<NodeId>> edge_map;
     for (auto const& edge_id : edges) {
         std::array<NodeId, 2> ends{edge_id.first, edge_id.second};
@@ -113,7 +118,7 @@ MinimumMeanCycleCalculator::find_heuristically_good_circuit(std::vector<Edge> co
 }
 
 auto MinimumMeanCycleCalculator::get_average_cost(std::vector<Edge> const& edges) const -> Gamma {
-    long total_cost = 0;
+    AccumulatedEdgeWeight total_cost = 0;
     for (auto const& join_edge : edges) {
         total_cost += _graph.edge_cost(join_edge);
     }

@@ -22,24 +22,29 @@ int main(int argc, char** argv) {
         std::cout << "Failed to open the output file. Exiting." << std::endl;
         return EXIT_FAILURE;
     }
-    auto const graph = Graph::read_dimacs(input_file);
+    try {
+        auto const graph = Graph::read_dimacs(input_file);
 
-    MinimumMeanCycleCalculator calc(graph);
-    auto const mmc = calc.find_mmc();
-    output_file << "p edge " << graph.num_nodes() << ' ';
-    if (mmc) {
-        output_file << mmc->size() << '\n';
-        for (auto const& edge : *mmc) {
-            output_file << "e ";
-            for (auto const end : {edge.first, edge.second}) {
-                output_file << (end + 1) << ' ';
+        MinimumMeanCycleCalculator calc(graph);
+        auto const mmc = calc.find_mmc();
+        output_file << "p edge " << graph.num_nodes() << ' ';
+        if (mmc) {
+            output_file << mmc->size() << '\n';
+            for (auto const& edge : *mmc) {
+                output_file << "e ";
+                for (auto const end : {edge.first, edge.second}) {
+                    output_file << (end + 1) << ' ';
+                }
+                output_file << graph.edge_cost(edge) << '\n';
             }
-            output_file << graph.edge_cost(edge) << '\n';
+        } else {
+            output_file << "0\n";
         }
-    } else {
-        output_file << "0\n";
-    }
-    output_file << std::flush;
+        output_file << std::flush;
 
-    return EXIT_SUCCESS;
+        return EXIT_SUCCESS;
+    } catch (std::exception const& xcp) {
+        std::cerr << "Caught exception: " << xcp.what() << '\n';
+        return EXIT_FAILURE;
+    }
 }

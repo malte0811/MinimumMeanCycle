@@ -21,16 +21,16 @@ using NodeId = size_type;
 
 using EdgeWeight = int32_t;
 
+using AccumulatedEdgeWeight = int64_t;
+
 using Edge = std::pair<NodeId, NodeId>;
 
 /**
    @class Graph
 
    This class models unweighted undirected graphs only.
-   Each edge is represented by two half edges.
-   Both nodes and half edges are indexed using contiguous integers starting at 0.
-   It is guaranteed all pairs of corresponding half edges follow each other directly.
-   In particualar, you end up with the same number if you divide their ids by 2.
+   Edges (and edge costs) are stored as an adjacency matrix, if multiple parallel edges are added only the cheapest one
+   is considered.
 **/
 class Graph {
 public:

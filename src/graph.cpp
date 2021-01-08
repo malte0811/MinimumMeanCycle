@@ -53,7 +53,6 @@ void Graph::add_edge(Edge const to_add, EdgeWeight const weight) {
 
 Graph Graph::read_dimacs(std::istream& input) {
     std::string unused_word{};
-    std::stringstream first_buffering_stream{};
     std::string const first_line = read_next_non_comment_line(input);
 
     if (first_line[0] != 'p') {
@@ -62,19 +61,26 @@ Graph Graph::read_dimacs(std::istream& input) {
 
     size_type num_nodes{};
     size_type num_edges{};
-    first_buffering_stream << first_line;
+    std::stringstream first_buffering_stream{first_line};
     first_buffering_stream >> unused_word >> unused_word >> num_nodes >> num_edges;
+    if (not first_buffering_stream) {
+        throw std::runtime_error("Invalid first line in DIMACS: " + first_line);
+    }
 
     // Now we successively add edges to our graph;
     Graph graph(NodeId{num_nodes});
     for (size_type i = 1; i <= num_edges; ++i) {
-        std::stringstream ith_buffering_stream{};
         std::string const ith_line = read_next_non_comment_line(input);
         size_type dimacs_node1{};
         size_type dimacs_node2{};
         EdgeWeight weight{};
-        ith_buffering_stream << ith_line;
+        std::stringstream ith_buffering_stream{ith_line};
         ith_buffering_stream >> unused_word >> dimacs_node1 >> dimacs_node2 >> weight;
+        if (not ith_buffering_stream or
+            dimacs_node1 < 1 or dimacs_node1 > num_nodes or
+            dimacs_node2 < 1 or dimacs_node2 > num_nodes) {
+            throw std::runtime_error("Invalid data in DIMACS line: " + ith_line);
+        }
         graph.add_edge({from_dimacs_id(dimacs_node1), from_dimacs_id(dimacs_node2)}, weight);
     }
 
