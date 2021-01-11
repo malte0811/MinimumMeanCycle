@@ -11,7 +11,7 @@ namespace MMC {
 
 MinimumMeanCycleCalculator::MinimumMeanCycleCalculator(Graph const& graph) : _graph(graph) {}
 
-std::optional<std::vector<Edge>> MinimumMeanCycleCalculator::find_mmc() {
+std::optional<std::pair<std::vector<Edge>, Gamma>> MinimumMeanCycleCalculator::find_mmc() {
     std::vector<Edge> result_cycle;
     {
         // The only condition the proof places on the initial gamma is that it is an upper bound for the mean cost of an
@@ -53,7 +53,7 @@ std::optional<std::vector<Edge>> MinimumMeanCycleCalculator::find_mmc() {
             break;
         }
     } while (gamma != gamma_last);
-    return result_cycle;
+    return std::make_pair(result_cycle, gamma);
 }
 
 /// Find a circuit, using a crude heuristic for low mean cost: a DFS visiting cheap edges first

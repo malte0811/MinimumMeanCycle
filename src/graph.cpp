@@ -2,6 +2,8 @@
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
+#include <map>
+#include <set>
 
 namespace MMC {
 
@@ -51,7 +53,7 @@ void Graph::add_edge(Edge const to_add, EdgeWeight const weight) {
     }
 }
 
-Graph Graph::read_dimacs(std::istream& input) {
+std::pair<Graph, std::optional<ParallelEdgeCycle>> Graph::read_dimacs(std::istream& input) {
     std::string unused_word{};
     std::string const first_line = read_next_non_comment_line(input);
 
@@ -67,8 +69,9 @@ Graph Graph::read_dimacs(std::istream& input) {
         throw std::runtime_error("Invalid first line in DIMACS: " + first_line);
     }
 
-    // Now we successively add edges to our graph;
-    Graph graph(NodeId{num_nodes});
+    // Now we successively add edges to our simple_graph;
+    Graph simple_graph(NodeId{num_nodes});
+    std::map<Edge, std::multiset<EdgeWeight>> parallel_edges;
     for (size_type i = 1; i <= num_edges; ++i) {
         std::string const ith_line = read_next_non_comment_line(input);
         size_type dimacs_node1{};
@@ -81,10 +84,25 @@ Graph Graph::read_dimacs(std::istream& input) {
             dimacs_node2 < 1 or dimacs_node2 > num_nodes) {
             throw std::runtime_error("Invalid data in DIMACS line: " + ith_line);
         }
-        graph.add_edge({from_dimacs_id(dimacs_node1), from_dimacs_id(dimacs_node2)}, weight);
+        auto const node1 = from_dimacs_id(dimacs_node1);
+        auto const node2 = from_dimacs_id(dimacs_node2);
+        simple_graph.add_edge({node1, node2}, weight);
+        parallel_edges[std::minmax(node1, node2)].insert(weight);
+    }
+    // Find cheapest cycle of length 2, if one exists
+    std::optional<ParallelEdgeCycle> parallel_cycle;
+    for (auto const&[edge, weights] : parallel_edges) {
+        if (weights.size() >= 2) {
+            auto const cheapest_it = weights.begin();
+            auto const second_cheapest_it = std::next(cheapest_it);
+            if (not parallel_cycle.has_value() or
+                *cheapest_it + *second_cheapest_it < parallel_cycle->weight_1 + parallel_cycle->weight_2) {
+                parallel_cycle = ParallelEdgeCycle{edge.first, edge.second, *cheapest_it, *second_cheapest_it};
+            }
+        }
     }
 
-    return graph;
+    return std::make_pair(simple_graph, parallel_cycle);
 }
 
 } // namespace MMC
