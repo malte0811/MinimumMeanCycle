@@ -26,17 +26,6 @@ using AccumulatedEdgeWeight = int64_t;
 using Edge = std::pair<NodeId, NodeId>;
 
 /**
- * Represents a cycle formed by two parallel edges (the graph class does not support parallel edges, so this special
- * case needs to be handled separately)
- */
-struct ParallelEdgeCycle {
-    NodeId end_a;
-    NodeId end_b;
-    EdgeWeight weight_1;
-    EdgeWeight weight_2;
-};
-
-/**
    @class Graph
 
    This class models unweighted undirected graphs only.
@@ -68,10 +57,9 @@ public:
     [[nodiscard]] bool edge_exists(Edge const& edge) const;
 
     /**
-     * @brief Reads a graph in DIMACS format from the given istream and returns a simple graph containing the cheapest
-     * of the edges between any pair of nodes, and the cheapest cycle consisting of two parallel edges, if one exists
+     * @brief Reads a simple graph in DIMACS format from the given istream
      */
-    static std::pair<Graph, std::optional<ParallelEdgeCycle>> read_dimacs(std::istream& str);
+    static Graph read_dimacs(std::istream& str);
 
 private:
     /// Converts an edge (encoded as its endpoints) to an ID in _edge_costs and _edge_in_graph

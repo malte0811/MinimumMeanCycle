@@ -21,29 +21,14 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
     }
     try {
-        auto const[graph, parallel_edge_cycle] = Graph::read_dimacs(input_file);
+        auto const graph = Graph::read_dimacs(input_file);
 
         MinimumMeanCycleCalculator calc(graph);
         auto const mmc_gamma_opt = calc.find_mmc();
         output_file << "p edge " << graph.num_nodes() << ' ';
 
-        if (parallel_edge_cycle) {
-            Gamma const parallel_gamma{parallel_edge_cycle->weight_1 + parallel_edge_cycle->weight_2, 2};
-            if (not mmc_gamma_opt or parallel_gamma < mmc_gamma_opt->second) {
-                // Special case: two parallel edges form the cheapest cycle
-                output_file << "2\n";
-                for (auto const cost : {parallel_edge_cycle->weight_1, parallel_edge_cycle->weight_2}) {
-                    for (auto const end : {parallel_edge_cycle->end_a, parallel_edge_cycle->end_b}) {
-                        output_file << (end + 1) << ' ';
-                    }
-                    output_file << cost << '\n';
-                }
-                return EXIT_SUCCESS;
-            }
-        }
-
         if (mmc_gamma_opt) {
-            // Found "regular" (length >= 3) cheapest cycle
+            // Write edges of minimum mean cycle
             auto const&[mmc, gamma] = *mmc_gamma_opt;
             output_file << mmc.size() << '\n';
             for (auto const& edge : mmc) {
